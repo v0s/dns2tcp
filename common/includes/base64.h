@@ -30,6 +30,9 @@
 #define	BASE64_SIZE(len)		((( (len + 3 - 1 ) / 3 )) * 4)
 #define	DECODED_BASE64_SIZE(len)	((( (len) / 4 ) * 3 ))
 
+#define BASE32_SIZE(len) (((len * 8) + 4) / 5)
+#define DECODED_BASE32_SIZE(len) ((len * 5) / 8)
+
 
 /* 
 took from Apache 1.3.27
@@ -37,6 +40,9 @@ took from Apache 1.3.27
 
 extern int base64_encode(char *string, char *encoded, int len);
 extern int base64_decode(unsigned char *bufplain, const char *bufcoded);
+
+extern int base32_encode(char *string, char *encoded, int len);
+extern int base32_decode(unsigned char *bufplain, const char *bufcoded);
 
 #ifndef HAVE_STRCASESTR
 extern char *strcasestr(const char *, const char *);

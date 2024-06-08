@@ -130,3 +130,130 @@ int  base64_decode(unsigned char *bufplain, const char *bufcoded)
     return nbytesdecoded;
 }
 
+static const char basis_32[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+int base32_encode(char *string, char *encoded, int len)
+{
+    int i, index, digit;
+    int currByte, nextByte;
+    char *p;
+
+    p = encoded;
+    for (i = 0; i < len;) {
+        currByte = (unsigned char)string[i];
+        
+        /* Is the current digit going to span a byte boundary? */
+        if (i + 1 < len) {
+            nextByte = (unsigned char)string[i + 1];
+        } else {
+            nextByte = 0;
+        }
+
+        /* Encode the current block */
+        for (index = 0; index < 8 && (i * 8 + index * 5) < (len * 8); index++) {
+            if ((i * 8 + index * 5) < (len * 8)) {
+                if (index == 0) {
+                    digit = currByte >> 3;
+                } else if (index == 1) {
+                    digit = ((currByte & 0x07) << 2) | (nextByte >> 6);
+                } else if (index == 2) {
+                    digit = (nextByte >> 1) & 0x1F;
+                } else if (index == 3) {
+                    digit = ((nextByte & 0x01) << 4);
+                    if ((i + 2) < len) {
+                        currByte = (unsigned char)string[i + 2];
+                        digit |= (currByte >> 4);
+                    }
+                } else if (index == 4) {
+                    digit = ((currByte & 0x0F) << 1);
+                    if ((i + 3) < len) {
+                        nextByte = (unsigned char)string[i + 3];
+                        digit |= (nextByte >> 7);
+                    }
+                } else if (index == 5) {
+                    digit = (nextByte >> 2) & 0x1F;
+                } else if (index == 6) {
+                    digit = ((nextByte & 0x03) << 3);
+                    if ((i + 4) < len) {
+                        currByte = (unsigned char)string[i + 4];
+                        digit |= (currByte >> 5);
+                    }
+                } else if (index == 7) {
+                    digit = currByte & 0x1F;
+                }
+
+                *p++ = basis_32[digit];
+            }
+        }
+        i += 5;
+    }
+
+    *p = '\0';
+    return (int)(p - encoded);
+}
+
+int base32_decode(unsigned char *bufplain, const char *bufcoded)
+{
+    int i, index, digit;
+    int currByte, nextByte;
+    int nbytesdecoded;
+    int len = strlen(bufcoded);
+    unsigned char *bufout = bufplain;
+    const unsigned char *bufin = (const unsigned char *)bufcoded;
+
+    for (i = 0; i < len; i += 8) {
+        currByte = 0;
+        nextByte = 0;
+
+        for (index = 0; index < 8 && (i + index) < len; index++) {
+            if (bufin[i + index] >= 'A' && bufin[i + index] <= 'Z') {
+                digit = bufin[i + index] - 'A';
+            } else if (bufin[i + index] >= '2' && bufin[i + index] <= '7') {
+                digit = bufin[i + index] - '2' + 26;
+            } else if (bufin[i + index] >= 'a' && bufin[i + index] <= 'z') {
+                digit = bufin[i + index] - 'a';
+            } else {
+                return -1; // Invalid character
+            }
+
+            switch (index) {
+            case 0:
+                currByte = digit << 3;
+                break;
+            case 1:
+                currByte |= (digit >> 2);
+                *bufout++ = currByte;
+                currByte = (digit & 0x03) << 6;
+                break;
+            case 2:
+                currByte |= digit << 1;
+                break;
+            case 3:
+                currByte |= (digit >> 4);
+                *bufout++ = currByte;
+                currByte = (digit & 0x0F) << 4;
+                break;
+            case 4:
+                currByte |= (digit >> 1);
+                *bufout++ = currByte;
+                currByte = (digit & 0x01) << 7;
+                break;
+            case 5:
+                currByte |= digit << 2;
+                break;
+            case 6:
+                currByte |= (digit >> 3);
+                *bufout++ = currByte;
+                currByte = (digit & 0x07) << 5;
+                break;
+            case 7:
+                currByte |= digit;
+                *bufout++ = currByte;
+                break;
+            }
+        }
+    }
+
+    nbytesdecoded = (int)(bufout - bufplain);
+    return nbytesdecoded;
+}

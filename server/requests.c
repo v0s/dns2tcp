@@ -165,7 +165,7 @@ int			get_request(t_conf *conf, t_request *req, t_data *output)
       return (-1);
     }
   DPRINTF(3, "Receive query : %s dns_id = 0x%x for domain %s\n", buffer, ntohs(hdr->id), req->domain);
-  return ((output->len = base64_decode((unsigned char *)output->buffer, buffer)));
+  return ((output->len = base32_decode((unsigned char *)output->buffer, buffer)));
 }
 
 /* 
